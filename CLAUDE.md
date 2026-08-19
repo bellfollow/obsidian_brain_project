@@ -84,16 +84,13 @@ Stop immediately and report when these appear:
 
 Vault path: `G:\내 드라이브\obsidians\BellFollow`
 
-**Recognize these triggers without being asked** — each one means "this belongs in RAW":
-- You fetched a web page and got its body text (not a search-result snippet)
-- You extracted text from a PDF or other document
-- You obtained external material you are citing as evidence
-- The user explicitly asks you to save/organize something in Obsidian
-- A `document/PROJECT_STATUS.md` or `document/FINDINGS_*.md` file (see `.claude/rules/doc-folders.md` when working in a `document/` or `docs/` folder) is newly created or updated — mirror it to RAW, keep the local file as-is
+**Recognize these as record-worthy moments without being asked** (this recognition itself has to happen before you're inside any relevant path, so it can't be lazy-loaded — everything else about what to do next can be):
 
-When any trigger fires, or for any other Obsidian-related task, read the vault's own `Wiki.md` (via obsidian_get_note) before doing anything, and follow the rules there. Do not proceed without reading it first. Do not re-derive these rules from memory; Wiki.md is the single source of truth and may have changed since you last read it.
+- Fetched/extracted external content (web page body, PDF, cited material) → go read the vault's `Wiki.md`, save to RAW per its rules
+- Session wrapping up, a significant decision/root-cause confirmed, or context long enough that a handoff would help → go write/update `document/PROJECT_STATUS.md`; touching that path loads `.claude/rules/doc-folders.md`, which covers everything from there (including mirroring to RAW)
+- User explicitly asks you to save/organize/record something → whichever of the above fits
 
-If a task involves fetching or extracting external content and you did NOT save it to RAW, say so explicitly rather than staying silent about it.
+If you fetched/extracted external content and did NOT save it to RAW, say so explicitly.
 
 ---
 
