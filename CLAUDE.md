@@ -71,7 +71,11 @@ Stop immediately and report when these appear:
 - **Optimistic Path** — only the happy path is implemented, then declared done
 - **Runaway Refactor** — the edit is spreading beyond the request
 
-## 9. Self-Check (before declaring completion)
+## 9. Date Accuracy
+
+Never infer or guess today's date from memory or conversation context. Before writing any date field (RAW `captured`, Wiki `created`/`updated`, `document/` filenames or timestamps, PROJECT_STATUS.md entries), verify the actual system date first — run a system command (e.g. `date` on macOS/Linux, `Get-Date` in PowerShell) rather than assuming. If a date was written incorrectly, correct it rather than leaving it and noting the discrepancy.
+
+## 10. Self-Check (before declaring completion)
 
 1. Is this "looks plausible" or "actually correct"?
 2. Did I run/test it, or did I judge it by reading?
@@ -80,7 +84,7 @@ Stop immediately and report when these appear:
 
 ---
 
-## 10. Obsidian Vault
+## 11. Obsidian Vault
 
 Vault path: `G:\내 드라이브\obsidians\BellFollow`
 
@@ -94,7 +98,7 @@ If you fetched/extracted external content and did NOT save it to RAW, say so exp
 
 ---
 
-## 11. Output Language (overrides everything above)
+## 12. Output Language (overrides everything above)
 
 **Reason in English. Answer in Korean. No exceptions.**
 
