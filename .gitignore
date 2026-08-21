@@ -1,0 +1,12 @@
+# 개인 세션 산출물 — 템플릿 범위 아님 (README 참조)
+HANDOFF.md
+.handoff_last_lines
+document/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 편집기
+.vscode/
+*.swp

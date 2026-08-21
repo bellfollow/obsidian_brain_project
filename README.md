@@ -11,14 +11,20 @@
 
 ```
 CLAUDE.md            전역 규칙 (코딩 원칙 + 옵시디언 트리거 포인터 + 출력 언어)
-Wiki.md               옵시디언 관련 전체 규칙 (RAW 저장, Wiki 승격, frontmatter, 링크) — 볼트 루트에 배치
+Wiki.md               옵시디언 관련 전체 규칙 (RAW 라이프사이클, Wiki 승격, frontmatter,
+                      MCP 도구 표준, 임계값 정본, 정본/배포 매핑표) — 볼트 루트에 배치
+_dashboard.md         볼트 상태판 (Dataview) — 볼트 루트에 배치
 commands/
   ingest.md           RAW → Wiki 승격 슬래시 커맨드
   query.md             Wiki 검색·질문답변 슬래시 커맨드
   lint.md               Wiki/RAW 상태 진단 슬래시 커맨드
+  log.md                DEV_LOG.md append 슬래시 커맨드
 rules/
-  doc-folders.md      document/·docs/ 폴더 컨벤션 + RAW 미러링 (경로 기반 lazy-load)
+  doc-folders.md      document/·docs/ 폴더 컨벤션 (경로 기반 lazy-load)
 ```
+
+`document/`는 이 저장소를 다루면서 생긴 개인 작업 기록(FINDINGS 등)이 쌓이는 곳이라
+`.gitignore`로 제외돼 있다 — 템플릿 범위가 아니다.
 
 ## 사전 준비
 
@@ -36,9 +42,16 @@ cp -r rules ~/.claude/rules
 
 # 볼트 루트
 cp Wiki.md <옵시디언_볼트_경로>/Wiki.md
+cp _dashboard.md <옵시디언_볼트_경로>/_dashboard.md
+mkdir -p <옵시디언_볼트_경로>/Trash
 ```
 
-`CLAUDE.md`와 `Wiki.md` 안의 `Vault path` / 폴더 경로를 실제 볼트 경로로 바꿀 것.
+`CLAUDE.md`의 `Vault path`를 실제 볼트 경로로 바꿀 것. `Wiki.md`·`_dashboard.md`·
+`commands/*.md` 안의 `BellFollow`는 예시 볼트 이름이므로 본인 볼트 이름으로
+전체 치환할 것(경로 기준이라 이름이 안 맞으면 동작하지 않는다).
+
+수정한 뒤엔 repo가 정본, 위 배포 경로들이 사본이 된다 — 어느 쪽을 고치든
+`Wiki.md`의 "정본과 배포본" 매핑표를 따라 반대쪽에도 반영할 것.
 
 ### Claude Code MCP 등록
 
@@ -64,10 +77,12 @@ claude mcp add obsidian --scope user --transport http https://127.0.0.1:27124/mc
 
 ## 핵심 원칙
 
-- **RAW는 절대 이동·삭제하지 않는다.** 처리 후에도 원본 그대로 남고, frontmatter `status`만 `raw → linked`로 바뀐다.
+- **RAW status는 4단계**: `inbox`(안 읽음) → `raw`(근거로 채택) → `linked`(Wiki 승격) 또는 `local`(재사용 가치 없어 Wiki 노트 없이 종결). 전이·삭제 규칙은 상태별로 다르다 — `Wiki.md`의 "RAW status 라이프사이클" 참조.
+- **삭제 금지는 도구가 아니라 행위 기준이다.** `raw`/`linked`/`local` 상태 RAW는 MCP 도구든 셸 명령이든 파일 탐색기든 어떤 수단으로도 삭제하지 않는다 — 정리는 `Trash/` 이동뿐. 단, 이건 문서화된 규칙이지 OS 레벨 강제가 아니다(권한 시스템으로 경로 단위 차단은 안 됨).
 - **moc(허브) 노트는 사람만 만든다.** 에이전트는 기존 moc에 링크를 추가하는 것까지만 한다.
 - **새 Wiki 카테고리는 임의로 만들지 않는다.** 사람에게 제안하고 확인받는다.
 - **RAW의 `project` 필드는 git 레포명 기준.** 로컬 폴더명은 신뢰하지 않는다. git 레포가 아니거나 remote가 없으면 조용히 넘어가지 않고 사람에게 물어본다.
+- **임계값·MCP 도구명은 `Wiki.md` 한 곳이 정본.** 다른 문서는 참조만 하고 숫자·도구명을 복제하지 않는다.
 - 규칙 파일(Wiki.md)은 매번 다시 읽는다 — 기억으로 재구성하지 않는다.
 
 ## 트러블슈팅 (실제로 겪은 문제들)

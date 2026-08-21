@@ -12,6 +12,8 @@ Global behavioral rules. Project-specific rules in each repo's `./CLAUDE.md` loa
 - If multiple interpretations exist, present all of them. Do not silently pick one.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what is confusing. Ask.
+  예: HANDOFF.md / DEV_LOG.md 를 쓰라는 지시를 받았는데 대상 프로젝트가
+      명시되지 않았을 때 — cwd로 추측하지 말고 되묻는다.
 
 ## 2. Simplicity First
 
@@ -73,7 +75,13 @@ Stop immediately and report when these appear:
 
 ## 9. Date Accuracy
 
-Never infer or guess today's date from memory or conversation context. Before writing any date field (RAW `captured`, Wiki `created`/`updated`, `document/` filenames or timestamps, PROJECT_STATUS.md entries), verify the actual system date first — run a system command (e.g. `date` on macOS/Linux, `Get-Date` in PowerShell) rather than assuming. If a date was written incorrectly, correct it rather than leaving it and noting the discrepancy.
+Never infer or guess today's date from memory or conversation context.
+Before writing ANY date — in a filename, a frontmatter field, a log heading,
+a document body, anywhere — verify the actual system date first by running a
+system command (`date` on Linux/macOS, `Get-Date` in PowerShell).
+Do not enumerate which files this applies to; it applies to every date you write.
+If a date was written incorrectly, correct it rather than leaving it and noting
+the discrepancy.
 
 ## 10. Self-Check (before declaring completion)
 
@@ -86,12 +94,16 @@ Never infer or guess today's date from memory or conversation context. Before wr
 
 ## 11. Obsidian Vault
 
-Vault path: `G:\내 드라이브\obsidians\BellFollow`
+Vault path: `<옵시디언_볼트_경로>` (실제 볼트 경로로 교체할 것)
+
+`Trash/`(폐기 대기)와 `_dashboard.md`(상태판)도 이 볼트 안에 있다. 임계값·규칙 정본은 `Wiki.md`.
+
+`obsidian_brain_project` repo가 이 파일 자신을 포함한 규칙 문서들의 정본이다. 매핑표는 `Wiki.md`의 "정본과 배포본" 절 참조 — 여기 중복 나열하지 않는다.
 
 **Recognize these as record-worthy moments without being asked** (this recognition itself has to happen before you're inside any relevant path, so it can't be lazy-loaded — everything else about what to do next can be):
 
 - Fetched/extracted external content (web page body, PDF, cited material) → go read the vault's `Wiki.md`, save to RAW per its rules
-- Session wrapping up, a significant decision/root-cause confirmed, or context long enough that a handoff would help → go write/update `document/PROJECT_STATUS.md`; touching that path loads `.claude/rules/doc-folders.md`, which covers everything from there (including mirroring to RAW)
+- Session wrapping up, a significant decision/root-cause confirmed, or context long enough that a handoff would help → go write/update `document/PROJECT_STATUS.md`; touching that path loads `.claude/rules/doc-folders.md`, which covers everything from there (including promotion to RAW via /ingest)
 - User explicitly asks you to save/organize/record something → whichever of the above fits
 
 If you fetched/extracted external content and did NOT save it to RAW, say so explicitly.
