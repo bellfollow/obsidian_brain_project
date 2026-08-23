@@ -30,11 +30,11 @@ status 라이프사이클 4단계와 임계값을 아래 형식으로 출력한 
         kebab-case)으로 변환해서 저장한다. 원래 파일명은 source 필드에 남기므로
         정보가 사라지지 않는다.
         예: document/FINDINGS_2026-08-19_vault_reorg.md
-            → BellFollow/RAW/2026-08-19_vault-reorg.md
+            → BellFollow/Raw/2026-08-19_vault-reorg.md
 
-이후 BellFollow/RAW/ 안의 승격 대상 파일을 처리하라.
+이후 BellFollow/Raw/ 안의 승격 대상 파일을 처리하라.
 
-1. search_query로 JsonLogic 쿼리(예: `{"and": [{"in": ["BellFollow/RAW/", {"var": "path"}]}, {"==": [{"var": "frontmatter.status"}, "raw"]}]}`)를 실행해 status가 raw인 파일만 골라낸다. status가 이미 linked 또는 local인 파일은 건드리지 않는다.
+1. search_query로 JsonLogic 쿼리(예: `{"and": [{"in": ["BellFollow/Raw/", {"var": "path"}]}, {"==": [{"var": "frontmatter.status"}, "raw"]}]}`)를 실행해 status가 raw인 파일만 골라낸다. status가 이미 linked 또는 local인 파일은 건드리지 않는다.
 2. 각 파일에 대해:
    - vault_read로 내용을 읽고 핵심만 추출해 원문 대비 대폭 축약한다.
    - 재사용성 판단: 이 RAW의 내용 중 "다른 프로젝트에서도 쓸 수 있는 것"만
@@ -43,6 +43,10 @@ status 라이프사이클 4단계와 임계값을 아래 형식으로 출력한 
    - question 분리: 원문에 제기됐으나 답이 나지 않은 사항이 있으면 별도 노트로
      만든다 — type: question, status: open, source_raw는 같은 RAW를 가리킨다.
      한 RAW에서 concept 1개 + question 0~N개가 나올 수 있다.
+     본문에 "원문 시점 YYYY-MM-DD(RAW의 captured) 기준, 이후 해소 여부 미확인"을
+     넣는다 — RAW는 시점 사료라 거기 적힌 미해결이 /ingest 실행 시점에도
+     미해결이라는 보장이 없다(원문과 처리 사이 시차 동안 다른 문서에서 이미
+     해소됐을 수 있다).
    - Wiki.md의 Wiki 카테고리 중 가장 맞는 폴더를 판단한다. 애매하면 general/에 넣고 이유를 보고한다.
    - Wiki frontmatter(title, type, up, aliases, tags, status, created, updated, source_raw)를 채운다. source_raw에는 원본 RAW 노트를 `[[위키링크]]`로 남긴다. up 필드 위키링크는 반드시 큰따옴표로 감싼다.
    - search_query로 관련 기존 Wiki 노트를 찾아 링크 규칙에 따라 [[크로스링크]]를 건다. 억지로 걸지 않는다.

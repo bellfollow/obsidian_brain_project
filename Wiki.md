@@ -2,7 +2,7 @@
 이 문서는 BellFollow 볼트에서 하는 모든 작업(RAW 저장, Wiki 정리, 검색)의 단일 규칙 문서다.
 옵시디언 관련 작업 시 항상 이 문서부터 읽고 시작한다. 기억으로 재구성하지 말고 매번 이 파일을 확인한다.
 
-**중요**: 이 옵시디언 vault의 루트는 `obsidians`이고, `BellFollow`는 그 안의 하위 폴더다. 이 문서(Wiki.md)를 포함해 아래 모든 경로(RAW/, Wiki/, Archive/)는 vault 루트 기준 상대경로이므로 앞에 `BellFollow/`를 반드시 붙여서 접근한다. `BellFollow/Wiki.md`처럼 찾을 것 — 루트에서 `Wiki.md`만 찾으면 실패한다.
+**중요**: 이 옵시디언 vault의 루트는 `obsidians`이고, `BellFollow`는 그 안의 하위 폴더다. 이 문서(Wiki.md)를 포함해 아래 모든 경로(Raw/, Wiki/, Archive/, Trash/)는 vault 루트 기준 상대경로이므로 앞에 `BellFollow/`를 반드시 붙여서 접근한다. `BellFollow/Wiki.md`처럼 찾을 것 — 루트에서 `Wiki.md`만 찾으면 실패한다.
 
 # 정본과 배포본
 `obsidian_brain_project` repo가 정본이다. 배포 경로는 아래 매핑표를 따른다.
@@ -22,9 +22,10 @@ repo 쪽 파일을 고치면 그 즉시 대응하는 배포 경로로 복사한�
 **예외**: `~/.claude/hooks/doc_writer.py`는 repo에 사본이 없다. **live 자체가 정본**이다.
 
 # Vault Directory Architecture
-- BellFollow/RAW/: 미가공 원본 자료. 본문은 수정하지 않는다. 삭제·이동은 "RAW status 라이프사이클" 절을 따른다. status는 inbox → raw → linked 또는 inbox → raw → local 4단계로 전이한다.
+- BellFollow/Raw/: 미가공 원본 자료. 본문은 수정하지 않는다. 삭제·이동은 "RAW status 라이프사이클" 절을 따른다. status는 inbox → raw → linked 또는 inbox → raw → local 4단계로 전이한다.
 - BellFollow/Wiki/<프로젝트>/: 정제된 지식. 하위 폴더 depth = 위계.
-  - BellFollow/Wiki/maple-autochess/, BellFollow/Wiki/nan-hackathon/, BellFollow/Wiki/overseas-platform/, BellFollow/Wiki/wellog/, BellFollow/Wiki/career/, BellFollow/Wiki/general/
+  - BellFollow/Wiki/maple-autochess/, BellFollow/Wiki/nan-hackathon/, BellFollow/Wiki/overseas-platform/, BellFollow/Wiki/wellog/, BellFollow/Wiki/career/, BellFollow/Wiki/general/, BellFollow/Wiki/meta/
+  - `meta/`: 특정 프로젝트에 속하지 않는, 볼트·문서·에이전트 규칙 설계 자체에 관한 지식.
   - 새 카테고리가 필요하면 임의로 만들지 말고 사람에게 제안한다.
 - BellFollow/Archive/: 당장 안 쓰지만 보존할 자료. 링크/정리 대상 아님.
 - BellFollow/Trash/: 폐기 대기. 에이전트는 이동 제안만 하고 삭제는 사람이 한다.
@@ -44,7 +45,7 @@ repo 쪽 파일을 고치면 그 즉시 대응하는 배포 경로로 복사한�
 얻는 것보다 크다. 필요해지면 그때 수동으로 뽑는다:
 
 ```dataview
-TABLE source, project FROM "BellFollow/RAW" WHERE status = "local"
+TABLE source, project FROM "BellFollow/Raw" WHERE status = "local"
 ```
 
 전이: `inbox → raw → linked` 또는 `inbox → raw → local`.
@@ -99,7 +100,7 @@ RAW 노트는 status와 무관하게 Trash/로 이동한다(`vault_move`). 그�
 불구하고 RAW로 승격된다. 승격 경로는 `/ingest` 0단계 참조.
 
 **파일 규칙:**
-- 파일명: `BellFollow/RAW/YYYY-MM-DD_<slug>.md` (slug는 영문 kebab-case)
+- 파일명: `BellFollow/Raw/YYYY-MM-DD_<slug>.md` (slug는 영문 kebab-case)
 - 필수 frontmatter:
 ```yaml
 ---
@@ -144,7 +145,10 @@ source_raw: "[[RAW 노트 제목]]"
 
 # 프로젝트 매핑 (git 레포명 → Wiki 카테고리)
 RAW의 `project`(git 레포명)와 Wiki 폴더 카테고리는 이름 체계가 다를 수 있어 매핑표로 관리한다.
-- rag-expense-guide-bot → side-project/biz-expense-bot (이미 사용 중인 태그 슬러그, Wiki 폴더 위치는 재확인 필요)
+- rag-expense-guide-bot
+  · Wiki 폴더: general/   (전용 폴더 없음. 기존 허브 노트가 거기 있어 따름)
+  · 태그: side-project/biz-expense-bot
+  (2026-08-23 확인 완료)
 - (새 레포 확인되면 이 표에 추가)
 
 매핑에 없는 새 project 값을 만나면, 기존 Wiki 카테고리 목록에서 먼저 찾아보고 없으면 사람에게 새 카테고리를 제안한다. 임의로 조용히 새 카테고리를 만들지 않는다.

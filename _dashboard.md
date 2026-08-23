@@ -5,13 +5,13 @@
 ## 처리 대기 — /ingest 돌리면 해소
 ```dataview
 TABLE WITHOUT ID length(rows) AS "raw 대기"
-FROM "BellFollow/RAW" WHERE status = "raw" GROUP BY true
+FROM "BellFollow/Raw" WHERE status = "raw" GROUP BY true
 ```
 
 ## 안 읽은 수집 자료 — 오래된 순
 ```dataview
 TABLE captured, (date(today) - date(captured)).days AS 경과일
-FROM "BellFollow/RAW" WHERE status = "inbox" SORT captured ASC
+FROM "BellFollow/Raw" WHERE status = "inbox" SORT captured ASC
 ```
 
 ## 미해결 의문 — 오래된 순
