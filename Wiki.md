@@ -16,10 +16,11 @@ repo 쪽 파일을 고치면 그 즉시 대응하는 배포 경로로 복사한�
 | `commands/lint.md` | `~/.claude/commands/lint.md` |
 | `commands/log.md` | `~/.claude/commands/log.md` |
 | `commands/query.md` | `~/.claude/commands/query.md` |
+| `hooks/doc_writer.py` | `~/.claude/hooks/doc_writer.py` |
 | `Wiki.md` | 볼트 `BellFollow/Wiki.md` |
 | `_dashboard.md` | 볼트 `BellFollow/_dashboard.md` |
 
-**예외**: `~/.claude/hooks/doc_writer.py`는 repo에 사본이 없다. **live 자체가 정본**이다.
+(예외 없음 — `hooks/doc_writer.py`도 위 표와 같은 규칙을 따른다. repo가 정본, `~/.claude/hooks/`는 배포본이다.)
 
 # Vault Directory Architecture
 - BellFollow/Raw/: 미가공 원본 자료. 본문은 수정하지 않는다. 삭제·이동은 "RAW status 라이프사이클" 절을 따른다. status는 inbox → raw → linked 또는 inbox → raw → local 4단계로 전이한다.
