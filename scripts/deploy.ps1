@@ -17,6 +17,7 @@ $Pairs = @(
     @{ Src = "$RepoRoot\commands\log.md";         Dst = "$ClaudeDir\commands\log.md" }
     @{ Src = "$RepoRoot\commands\query.md";       Dst = "$ClaudeDir\commands\query.md" }
     @{ Src = "$RepoRoot\hooks\doc_writer.py";     Dst = "$ClaudeDir\hooks\doc_writer.py" }
+    @{ Src = "$RepoRoot\hooks\raw_writer.py";     Dst = "$ClaudeDir\hooks\raw_writer.py" }
     @{ Src = "$RepoRoot\Wiki.md";                 Dst = "$VaultRoot\Wiki.md" }
     @{ Src = "$RepoRoot\_dashboard.md";           Dst = "$VaultRoot\_dashboard.md" }
 )

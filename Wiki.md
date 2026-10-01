@@ -17,6 +17,7 @@ repo 쪽 파일을 고치면 그 즉시 대응하는 배포 경로로 복사한�
 | `commands/log.md` | `~/.claude/commands/log.md` |
 | `commands/query.md` | `~/.claude/commands/query.md` |
 | `hooks/doc_writer.py` | `~/.claude/hooks/doc_writer.py` |
+| `hooks/raw_writer.py` | `~/.claude/hooks/raw_writer.py` |
 | `Wiki.md` | 볼트 `BellFollow/Wiki.md` |
 | `_dashboard.md` | 볼트 `BellFollow/_dashboard.md` |
 
@@ -99,6 +100,9 @@ RAW 노트는 status와 무관하게 Trash/로 이동한다(`vault_move`). 그�
 
 **예외**: `document/FINDINGS_*.md`(원인 규명 기록)는 위 "직접 생성" 배제 규칙에도
 불구하고 RAW로 승격된다. 승격 경로는 `/ingest` 0단계 참조.
+
+**예외 2**: 훅 자동 생성 세션 노트(tags: session, status: inbox) — 사람 검토
+전 단계, `/ingest`로 승격 또는 폐기.
 
 **파일 규칙:**
 - 파일명: `BellFollow/Raw/YYYY-MM-DD_<slug>.md` (slug는 영문 kebab-case)

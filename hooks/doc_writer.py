@@ -589,6 +589,16 @@ def run_child(job_path: Path, force: bool):
         content = build_handoff(body, session_id, capture_iso, banner)
         write_handoff_cas(project_dir, content, capture_iso)
 
+        # raw_writer 실패가 HANDOFF 작성에 영향을 주면 안 되므로 독립 try/except.
+        # doc_writer.py가 __main__으로 실행되는 동안 raw_writer가 모듈 top-level
+        # 에서 doc_writer를 다시 import하면 순환참조가 생길 수 있어, import를
+        # 이 지점에서 지연시킨다(doc_writer는 이미 완전히 로드된 상태).
+        try:
+            import raw_writer
+            raw_writer.write_raw_note(transcript_path, project_dir, session_id, capture_iso)
+        except Exception as e:
+            log.error(f"raw_writer failed: {e}", exc_info=True)
+
     except Exception as e:
         log.error(f"child error: {e}", exc_info=True)
     finally:
@@ -613,7 +623,7 @@ def run_parent(force: bool, dry: bool = False):
     project_dir     = Path(cwd)
     cfg             = load_config()
 
-    if not dry and (not cfg["GEMINI_API_KEY"] or cfg["GEMINI_API_KEY"] == "your_api_key_here"):
+    if not cfg["GEMINI_API_KEY"] or cfg["GEMINI_API_KEY"] == "your_api_key_here":
         log.error("GEMINI_API_KEY not set in config.env")
         return
 
@@ -640,11 +650,41 @@ def run_parent(force: bool, dry: bool = False):
         ensure_handoff_stub(project_dir)
         return
 
-    if source != "stdin":
-        log.info(f"fallback({source}) transcript found: {transcript_path}")
+    log.info(f"transcript resolved source={source} path={transcript_path}")
 
     if dry:
-        print(f"FOUND via {source}: {transcript_path}")
+        print(f"transcript resolved source={source} path={transcript_path}")
+
+        now_iso = datetime.datetime.now().isoformat(timespec="seconds")
+
+        try:
+            filtered, path_list, tool_names = filter_transcript(transcript_path)
+            handoff_body = call_gemini(
+                cfg["GEMINI_API_KEY"], cfg["GEMINI_MODEL"],
+                HANDOFF_PROMPT.format(transcript=filtered), int(cfg["GEMINI_TIMEOUT"]),
+            )
+            banner = compute_scope_banner(path_list, tool_names, project_dir)
+            handoff_content = build_handoff(handoff_body, session_id, now_iso, banner)
+            print("=== HANDOFF (dry, 쓰기 없음) ===")
+            print(handoff_content)
+        except Exception as e:
+            print(f"HANDOFF 생성 실패(dry): {e}")
+
+        try:
+            import raw_writer
+            raw_path, raw_frontmatter, raw_body = raw_writer.build_raw_note(
+                transcript_path, cwd, session_id, now_iso
+            )
+            if raw_path is None:
+                print("=== RAW NOTE (dry) === skip: 사용자 메시지 3개 미만")
+            else:
+                print("=== RAW NOTE PATH (dry) ===")
+                print(raw_path)
+                print("=== RAW NOTE 전문 (dry, 쓰기 없음) ===")
+                print(raw_frontmatter + raw_body)
+        except Exception as e:
+            print(f"RAW 노트 생성 실패(dry): {e}")
+
         return
 
     current_lines = count_lines(transcript_path)
