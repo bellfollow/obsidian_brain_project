@@ -1,5 +1,9 @@
 # 레포(정본) -> ~/.claude, 볼트 루트(배포본)로 복사.
 # 매핑은 Wiki.md의 "정본과 배포본" 표를 그대로 따른다.
+# dry 확인: .\deploy.ps1 -WhatIf
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
 
 $RepoRoot  = Split-Path -Parent $PSScriptRoot
 $ClaudeDir = "$HOME\.claude"
@@ -23,7 +27,7 @@ foreach ($pair in $Pairs) {
         continue
     }
     $dstDir = Split-Path -Parent $pair.Dst
-    New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
-    Copy-Item $pair.Src $pair.Dst -Force
+    New-Item -ItemType Directory -Force -Path $dstDir -WhatIf:$WhatIfPreference | Out-Null
+    Copy-Item $pair.Src $pair.Dst -Force -WhatIf:$WhatIfPreference
     Write-Output "복사: $($pair.Src) -> $($pair.Dst)"
 }
