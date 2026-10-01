@@ -94,7 +94,7 @@ the discrepancy.
 
 ## 11. Obsidian Vault
 
-Vault path: `<옵시디언_볼트_경로>` (실제 볼트 경로로 교체할 것)
+Vault path: `G:\내 드라이브\obsidians\BellFollow`
 
 `Trash/`(폐기 대기)와 `_dashboard.md`(상태판)도 이 볼트 안에 있다. 임계값·규칙 정본은 `Wiki.md`.
 
