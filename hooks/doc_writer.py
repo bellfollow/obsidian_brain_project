@@ -366,15 +366,17 @@ def call_gemini(api_key: str, model: str, prompt: str, timeout: int) -> str:
         method="POST",
     )
 
-    for attempt in range(2):
+    retry_delays = [5, 15]  # 503/429 전용, 딱 2회만
+    for attempt in range(len(retry_delays) + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return data["candidates"][0]["content"]["parts"][0]["text"]
         except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt == 0:
-                log.warning("Rate limit, retrying in 10s...")
-                time.sleep(10)
+            if e.code in (429, 503) and attempt < len(retry_delays):
+                delay = retry_delays[attempt]
+                log.warning(f"Gemini {e.code}, retrying in {delay}s... (attempt {attempt + 1}/{len(retry_delays)})")
+                time.sleep(delay)
                 continue
             log.error(f"Gemini HTTP error {e.code}: {e.read()[:200]}")
             raise
@@ -589,15 +591,20 @@ def run_child(job_path: Path, force: bool):
         content = build_handoff(body, session_id, capture_iso, banner)
         write_handoff_cas(project_dir, content, capture_iso)
 
+        # force=True는 PreCompact/SessionEnd에서만 선다(Stop은 force 없이 호출).
+        # raw 노트는 세션당 한 번만 의미 있게 누적되면 충분하므로 Stop(매 턴)
+        # 마다가 아니라 SessionEnd/PreCompact에서만 쓴다.
+        #
         # raw_writer 실패가 HANDOFF 작성에 영향을 주면 안 되므로 독립 try/except.
         # doc_writer.py가 __main__으로 실행되는 동안 raw_writer가 모듈 top-level
         # 에서 doc_writer를 다시 import하면 순환참조가 생길 수 있어, import를
         # 이 지점에서 지연시킨다(doc_writer는 이미 완전히 로드된 상태).
-        try:
-            import raw_writer
-            raw_writer.write_raw_note(transcript_path, project_dir, session_id, capture_iso)
-        except Exception as e:
-            log.error(f"raw_writer failed: {e}", exc_info=True)
+        if force:
+            try:
+                import raw_writer
+                raw_writer.write_raw_note(transcript_path, project_dir, session_id, capture_iso)
+            except Exception as e:
+                log.error(f"raw_writer failed: {e}", exc_info=True)
 
     except Exception as e:
         log.error(f"child error: {e}", exc_info=True)

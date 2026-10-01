@@ -60,14 +60,17 @@ def call_gemini(api_key: str, model: str, prompt: str, timeout: int) -> str:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    for attempt in range(2):
+    retry_delays = [5, 15]  # 503/429 전용, 딱 2회만
+    for attempt in range(len(retry_delays) + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return data["candidates"][0]["content"]["parts"][0]["text"]
         except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt == 0:
-                time.sleep(10)
+            if e.code in (429, 503) and attempt < len(retry_delays):
+                delay = retry_delays[attempt]
+                log.warning(f"raw_writer: Gemini {e.code}, retrying in {delay}s... (attempt {attempt + 1}/{len(retry_delays)})")
+                time.sleep(delay)
                 continue
             log.error(f"raw_writer: Gemini HTTP error {e.code}: {e.read()[:200]}")
             raise
@@ -205,28 +208,42 @@ TRANSCRIPT:
 """
 
 
-def build_raw_note(transcript_path, cwd, session_id: str, captured):
+def build_raw_note(
+    transcript_path, cwd, session_id: str, captured,
+    project_override: str = None, extra_tags: list = None, source_path=None,
+):
     """
     쓰기 없는 순수 함수. 반환: (path, frontmatter, body).
-    사용자 텍스트 메시지가 3개 미만이면 (None, None, None) — 스킵 신호.
+    None 반환은 두 가지 경우 — 호출자는 로그로 구분한다:
+    - 사용자 메시지 3개 미만 AND 필터된 텍스트 20KB 미만: 스킵(내용 자체가 적음)
+    - Gemini 실패 또는 응답에 "## " 섹션이 하나도 없음: 실패(재시도/수동 처리 대상)
 
     captured: ISO 문자열 또는 datetime/date — "이 세션이 실제로 있었던 날짜".
     실시간 훅에서는 호출 시점(오늘)을 넘기고, 백필에서는 세션 jsonl 첫
     메시지의 timestamp 날짜를 호출자가 넘긴다. 파일명과 frontmatter의
     captured 필드 모두 이 값 하나로 통일한다.
+
+    project_override: git remote 조회 없이 project 필드를 강제 지정(백필용 —
+    백업 사본 경로에서 git remote를 조회하면 틀린 값이 나오므로).
+    extra_tags: "session" 기본 태그에 추가할 태그 목록(예: 백필이면 ["backfill"]).
+    source_path: frontmatter source/본문 trailer에 적을 경로를 transcript_path와
+    다르게 지정(백필에서 실제로 읽는 건 백업 사본이지만, source는 원본 live
+    경로를 가리켜야 하므로).
     """
     transcript_path = Path(transcript_path)
     cwd = Path(cwd)
+    display_source = Path(source_path) if source_path else transcript_path
 
     filtered, user_count = _read_transcript_for_raw(transcript_path)
-    if user_count < 3:
+    if user_count < 3 and len(filtered.encode("utf-8")) < 20 * 1024:
+        log.info(f"raw_writer: skip (user_count={user_count}, filtered<20KB): {session_id}")
         return None, None, None
 
     captured_dt = (
         datetime.fromisoformat(captured) if isinstance(captured, str) else captured
     )
     date_str = captured_dt.strftime("%Y-%m-%d")
-    project = _git_project_name(cwd)
+    project = project_override if project_override else _git_project_name(cwd)
     vault_root = resolve_vault_root()
     path = vault_root / "Raw" / f"{date_str}_{project}_{session_id[:8]}.md"
 
@@ -237,20 +254,26 @@ def build_raw_note(transcript_path, cwd, session_id: str, captured):
             RAW_NOTE_PROMPT.format(transcript=filtered), int(cfg["GEMINI_TIMEOUT"]),
         )
     except Exception as e:
-        log.error(f"raw_writer: Gemini call failed, 본문 없이 진행: {e}")
-        body = ""
+        log.error(f"raw_writer: Gemini call failed, 노트 생성 실패: {session_id}: {e}")
+        return None, None, None
 
     body = body.strip()
-    body += f"\n\n원본 transcript 경로: `{transcript_path}`"
+    if "## " not in body:
+        log.error(f"raw_writer: Gemini 응답에 섹션 없음(빈 본문), 노트 생성 실패: {session_id}")
+        return None, None, None
 
+    body += f"\n\n원본 transcript 경로: `{display_source}`"
+
+    tags = ["session"] + list(extra_tags or [])
+    tags_str = "[" + ", ".join(tags) + "]"
     frontmatter = (
         "---\n"
-        f"source: {transcript_path}\n"
+        f"source: {display_source}\n"
         f"captured: {date_str}\n"
         "status: inbox\n"
         f"project: {project}\n"
         f"session_id: {session_id}\n"
-        "tags: [session]\n"
+        f"tags: {tags_str}\n"
         "---\n\n"
     )
     return path, frontmatter, body
@@ -329,13 +352,20 @@ def _warn_sync_conflicts(raw_dir: Path):
         pass
 
 
-def write_raw_note(transcript_path, cwd, session_id: str, captured):
+def write_raw_note(
+    transcript_path, cwd, session_id: str, captured,
+    project_override: str = None, extra_tags: list = None, source_path=None,
+):
+    """반환: 실제로 대상으로 삼은 path(스킵이면 None) — 호출자가 결과를 알 수 있게."""
     flush_pending()
 
-    path, frontmatter, body = build_raw_note(transcript_path, cwd, session_id, captured)
+    path, frontmatter, body = build_raw_note(
+        transcript_path, cwd, session_id, captured,
+        project_override=project_override, extra_tags=extra_tags, source_path=source_path,
+    )
     if path is None:
         log.info("raw_writer: skip (사용자 메시지 3개 미만)")
-        return
+        return None
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -343,7 +373,7 @@ def write_raw_note(transcript_path, cwd, session_id: str, captured):
         existing = path.read_text(encoding="utf-8")
         if body.strip() == _last_section_text(existing):
             log.info(f"raw_writer: 변경 없음, 스킵: {path}")
-            return
+            return path
         # 업데이트 시각은 captured(세션이 있었던 날짜)가 아니라 실제 "지금"
         # — 백필처럼 captured가 과거일 때도 업데이트 마커는 현재 시각이어야 함.
         hhmm = datetime.now().strftime("%H:%M")
@@ -355,3 +385,4 @@ def write_raw_note(transcript_path, cwd, session_id: str, captured):
         _save_pending(path, full)
 
     _warn_sync_conflicts(path.parent)
+    return path
