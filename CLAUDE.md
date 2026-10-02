@@ -100,11 +100,15 @@ Vault path: `G:\내 드라이브\obsidians\BellFollow`
 
 `obsidian_brain_project` repo가 이 파일 자신을 포함한 규칙 문서들의 정본이다. 매핑표는 `Wiki.md`의 "정본과 배포본" 절 참조 — 여기 중복 나열하지 않는다.
 
+**RAW 캡처는 훅이 자동으로 한다**(`doc_writer.py` → `raw_writer.py`, `SessionEnd`/`PreCompact` 시점). 매 세션 RAW에 쓸지 직접 판단할 필요 없다.
+
 **Recognize these as record-worthy moments without being asked** (this recognition itself has to happen before you're inside any relevant path, so it can't be lazy-loaded — everything else about what to do next can be):
 
-- Fetched/extracted external content (web page body, PDF, cited material) → go read the vault's `Wiki.md`, save to RAW per its rules
-- Session wrapping up, a significant decision/root-cause confirmed, or context long enough that a handoff would help → go write/update `document/PROJECT_STATUS.md`; touching that path loads `.claude/rules/doc-folders.md`, which covers everything from there (including promotion to RAW via /ingest)
+- Fetched/extracted external content (web page body, PDF, cited material) → **Claude가 직접 RAW에 저장하는 유일한 경우.** go read the vault's `Wiki.md`, save to RAW per its rules
+- Session wrapping up, a significant decision/root-cause confirmed, or context long enough that a handoff would help → go write/update `document/PROJECT_STATUS.md`(RAW와 무관); touching that path loads `.claude/rules/doc-folders.md`, which covers everything from there
 - User explicitly asks you to save/organize/record something → whichever of the above fits
+
+정리·승격(훅이 쓴 inbox 노트, 외부 콘텐츠 캡처, FINDINGS 전부)은 `/ingest`가 한다 — Claude가 직접 하지 않는다.
 
 If you fetched/extracted external content and did NOT save it to RAW, say so explicitly.
 

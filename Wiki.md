@@ -36,10 +36,11 @@ repo 쪽 파일을 고치면 그 즉시 대응하는 배포 경로로 복사한�
 
 | status | 의미 | 부여 | 전이 트리거 | 방치 감지 | 삭제 |
 |---|---|---|---|---|---|
-| `inbox` | 안 읽음. 채택 판단 전 | 사람(수집 시) | 사람이 읽고 판단 | `/lint` + 대시보드 | **가능** → Trash |
-| `raw` | 근거로 채택. `/ingest` 대상 | 사람 / `/ingest` 0단계 | `/ingest` 1단계 | `/lint` 항목7 + 대시보드 | 금지 |
+| `inbox` | 안 읽음. 채택 판단 전 | 사람(수집 시) / 훅 자동(`raw_writer.py`) | `/ingest` [A] | `/lint` + 대시보드 | **가능** → Trash |
+| `raw` | 근거로 채택. `/ingest` 대상 | 사람 / `/ingest findings` | `/ingest` [B] | `/lint` 항목7 + 대시보드 | 금지 |
 | `linked` | Wiki 승격 완료. Wiki가 참조 중 | `/ingest` | 없음 (**종결**) | 불필요 | 절대 금지 |
 | `local` | `/ingest`가 검토했으나 재사용 가치 없음. Wiki 노트 없음 | `/ingest` | 없음 (**종결**) | 불필요 (아래 참조) | 금지 |
+| `discarded` | `/ingest` [A]에서 사람이 폐기 선택. Wiki 노트 없음 | `/ingest` [A] | 없음 (**종결**) | 불필요 | 금지(local과 동일 근거) |
 
 `local`의 재검토는 **의도적으로 하지 않는다.** Wiki 카테고리가 늘거나 다른 프로젝트가
 생겨서 예전 `local` 판정이 뒤집힐 수는 있지만, 그 빈도가 낮고 손실도 작다
@@ -50,9 +51,10 @@ repo 쪽 파일을 고치면 그 즉시 대응하는 배포 경로로 복사한�
 TABLE source, project FROM "BellFollow/Raw" WHERE status = "local"
 ```
 
-전이: `inbox → raw → linked` 또는 `inbox → raw → local`.
-inbox에서 바로 Wiki로 가는 경우(요지만 필요)는 RAW 파일을 Trash/로 옮긴다.
-inbox 자료는 어떤 경로로 정리되든 직접 삭제하지 않고 Trash를 경유한다.
+전이: `inbox → raw → linked`, `inbox → raw → local`, 또는 `/ingest` [A]를
+거치는 `inbox → linked`, `inbox → discarded`.
+inbox → linked/discarded는 RAW 파일을 Trash로 옮기지 않고 상태만 바꾼다
+(원본 보존 — source_raw 참조가 끊기지 않게).
 
 **삭제 금지의 근거는 "RAW 폴더라서"가 아니라 "근거로 채택했으니까"다.**
 `inbox`는 채택 이전 단계라 보존 의무가 발생하지 않는다. 삭제 허용은 원칙 위반이 아니라
@@ -99,7 +101,7 @@ RAW 노트는 status와 무관하게 Trash/로 이동한다(`vault_move`). 그�
 - 언제든 재현 가능한 것 (레포 코드, 공식 문서 목차)
 
 **예외**: `document/FINDINGS_*.md`(원인 규명 기록)는 위 "직접 생성" 배제 규칙에도
-불구하고 RAW로 승격된다. 승격 경로는 `/ingest` 0단계 참조.
+불구하고 RAW로 승격된다. 승격 경로는 `/ingest findings <project-path>` 참조.
 
 **예외 2**: 훅 자동 생성 세션 노트(tags: session, status: inbox) — 사람 검토
 전 단계, `/ingest`로 승격 또는 폐기.
@@ -120,9 +122,9 @@ tags: []
 - 저장 전 같은 `source`를 가진 기존 파일이 있는지 먼저 검색한다. 있으면 새로 만들지 말고 그 사실을 보고한다.
 
 **project 필드 채우는 규칙:**
-- 로컬 폴더명이 아니라 실제 git 레포명을 쓴다 — `git remote -v` 또는 `git config --get remote.origin.url`로 확인한다. 로컬 폴더명은 사람마다 다르게 지을 수 있어 신뢰하지 않는다.
-- 세션이 git 레포가 아니거나(초기화 안 됨) 원격(remote)이 등록 안 되어 있으면, project를 임의로 비우거나 추측하지 말고 사람에게 물어본다 — "이 프로젝트는 git 레포로 등록 안 된 것 같은데, project 값을 뭘로 채울지 / 지금 git 등록부터 할지" 확인한다.
-- 확인 후에도 값이 정해지지 않으면 그 사실을 명시적으로 보고하고 다음 단계로 진행한다.
+- 훅(`raw_writer.py`)은 git remote에서 자동 추출한다(실패하면 폴더명으로 폴백) — 매 세션 사람에게 묻지 않는다.
+- Claude가 직접 저장하는 경우(외부 콘텐츠 fetch)는 기존대로 `git remote -v`로 확인하고, git 레포가 아니거나 remote가 없으면 사람에게 물어본다.
+- **legacy 허용**: project 필드가 없는 과거 RAW 파일(2026-08-20 재정비 이전)은 소급 보정하지 않고 그대로 둔다.
 
 # Wiki: 노트 Frontmatter Schema
 RAW의 frontmatter(source/captured/status/tags)와는 별개 스키마다. Wiki/ 하위 노트는 다음을 쓴다:
