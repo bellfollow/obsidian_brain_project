@@ -333,16 +333,14 @@ def filter_transcript(transcript_path: Path):
                             lines_out.append(f"[tool_use] {name} {' '.join(parts)}")
 
                 elif msg_type == "user":
-                    for block in obj.get("message", {}).get("content", []):
-                        if not isinstance(block, dict):
-                            continue
-                        btype = block.get("type", "")
-                        if btype == "text":
-                            lines_out.append(
-                                f"[user] {block.get('text', '')[:MAX_TEXT_LEN]}"
-                            )
-                        elif btype == "tool_result":
-                            lines_out.append("[tool_result] (omitted)")
+                    from raw_writer import user_texts
+                    for text in user_texts(obj):
+                        lines_out.append(f"[user] {text[:MAX_TEXT_LEN]}")
+                    c = (obj.get("message") or {}).get("content")
+                    if isinstance(c, list):
+                        for b in c:
+                            if isinstance(b, dict) and b.get("type") == "tool_result":
+                                lines_out.append("[tool_result] (omitted)")
 
     except Exception as e:
         log.warning(f"filter_transcript error: {e}")
@@ -627,6 +625,8 @@ def run_parent(force: bool, dry: bool = False):
     transcript_arg  = hook_input.get("transcript_path", "")
     session_id      = hook_input.get("session_id", "unknown")
     cwd             = hook_input.get("cwd", os.getcwd())
+    log.info(f"hook_in event={hook_input.get('hook_event_name')} "
+             f"sid={session_id} tp={transcript_arg} cwd={cwd}")
     project_dir     = Path(cwd)
     cfg             = load_config()
 

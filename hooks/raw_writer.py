@@ -144,6 +144,32 @@ def _git_project_name(cwd: Path) -> str:
     return cwd.name
 
 
+_NON_USER_PREFIXES = (
+    "<command-name>", "<command-message>", "<command-args>", "<local-command-",
+    "<system-reminder>", "<user-prompt-submit-hook>",
+)
+
+
+def user_texts(obj):
+    """진짜 사용자 입력 텍스트만 반환. str(신형)/text 블록 리스트(구형) 둘 다 지원.
+    tool_result 블록, isMeta 레코드, 시스템 주입 태그, 슬래시 명령(한 줄 "/...")은 제외."""
+    if obj.get("isMeta"):
+        return []
+    c = (obj.get("message") or {}).get("content")
+    if isinstance(c, str):
+        c = [c]
+    out = []
+    for b in c or []:
+        t = b if isinstance(b, str) else (b.get("text", "") if isinstance(b, dict) and b.get("type") == "text" else "")
+        s = t.strip()
+        if not s or s.startswith(_NON_USER_PREFIXES):
+            continue
+        if s.startswith("/") and "\n" not in s:
+            continue
+        out.append(t)
+    return out
+
+
 def _read_transcript_for_raw(transcript_path: Path):
     """
     (filtered_text, user_message_count)를 반환한다.
@@ -165,12 +191,9 @@ def _read_transcript_for_raw(transcript_path: Path):
                     continue
                 msg_type = obj.get("type", "")
                 if msg_type == "user":
-                    for block in obj.get("message", {}).get("content", []):
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            text = block.get("text", "")
-                            if text.strip():
-                                user_count += 1
-                                lines_out.append(f"[user] {text[:2000]}")
+                    for text in user_texts(obj):
+                        user_count += 1
+                        lines_out.append(f"[user] {text[:2000]}")
                 elif msg_type == "assistant":
                     for block in obj.get("message", {}).get("content", []):
                         if isinstance(block, dict) and block.get("type") == "text":
