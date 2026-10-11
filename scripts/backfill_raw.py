@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """
-backfill_raw.py — 나라장터(korean_market_ai) 과거 세션을 볼트 Raw/에 백필한다.
+backfill_raw.py — 과거 세션 transcript를 볼트 Raw/에 백필한다.
 
 hooks/raw_writer.py의 build_raw_note/write_raw_note를 그대로 import해서 쓴다
 (새로 구현하지 않음). 기본은 --dry(쓰기 없이 미리보기), --apply를 줘야
 실제로 raw_writer.write_raw_note를 호출해 쓴다.
 
-대상은 ~/.claude/_backup/transcripts/narajangteo/*.jsonl (백업 사본) —
-라이브 세션을 건드리지 않는다. source/trailer에는 원본 live 경로를 적는다.
+대상은 --backup-dir 안의 *.jsonl(백업 사본) — 라이브 세션을 건드리지 않는다.
+--live-dir을 주면 frontmatter source/본문 trailer에 백업 경로 대신 그 경로를
+적는다(백업은 읽기 전용 사본일 뿐, 원본 출처를 남기고 싶을 때 사용).
 
 스킵 여부는 raw_writer.build_raw_note를 부르기 전에 이 스크립트가 직접
 _read_transcript_for_raw로 먼저 판단한다(사용자 메시지 3개 미만 AND 필터된
 텍스트 20KB 미만). 그래서 그 조건을 통과했는데도 build_raw_note/write_raw_note가
 None을 반환하면 그건 "스킵"이 아니라 "실패"(Gemini 실패 또는 빈 본문)로 분류한다.
+
+예:
+  python backfill_raw.py --backup-dir ~/.claude/_backup/transcripts/<project> \
+      --project <git-repo-name> --live-dir ~/.claude/projects/<slug>
 """
 
 import sys
@@ -25,9 +30,6 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 import raw_writer
 
-BACKUP_DIR = Path.home() / ".claude" / "_backup" / "transcripts" / "narajangteo"
-LIVE_DIR = Path.home() / ".claude" / "projects" / "c--dev-narajangteo"
-PROJECT = "korean_market_ai"
 EXTRA_TAGS = ["backfill"]
 SLEEP_BETWEEN_SESSIONS = 2  # Gemini 503 대비
 SKIP_USER_COUNT = 3
@@ -62,12 +64,18 @@ def already_in_raw(vault_root: Path, session_id: str):
 
 def main():
     p = argparse.ArgumentParser()
+    p.add_argument("--backup-dir", required=True, help="백업 transcript(*.jsonl) 폴더")
+    p.add_argument("--project", required=True, help="frontmatter project 필드로 강제할 값(git 레포명)")
+    p.add_argument("--live-dir", default=None, help="source/trailer에 적을 원본 live 경로(생략 시 --backup-dir 그대로 씀)")
     p.add_argument("--apply", action="store_true", help="실제로 쓴다. 기본은 dry(미리보기만).")
     args = p.parse_args()
     dry = not args.apply
 
-    jsonl_files = sorted(BACKUP_DIR.glob("*.jsonl"))
-    print(f"대상: {len(jsonl_files)}개 ({BACKUP_DIR}), 모드: {'dry' if dry else 'apply'}")
+    backup_dir = Path(args.backup_dir)
+    live_dir = Path(args.live_dir) if args.live_dir else None
+
+    jsonl_files = sorted(backup_dir.glob("*.jsonl"))
+    print(f"대상: {len(jsonl_files)}개 ({backup_dir}), 모드: {'dry' if dry else 'apply'}")
 
     vault_root = raw_writer.resolve_vault_root()
     print(f"vault_root: {vault_root}")
@@ -77,7 +85,7 @@ def main():
 
     for i, jsonl_path in enumerate(jsonl_files):
         session_id = jsonl_path.stem
-        live_source = LIVE_DIR / f"{session_id}.jsonl"
+        live_source = (live_dir / f"{session_id}.jsonl") if live_dir else jsonl_path
 
         existing = already_in_raw(vault_root, session_id)
         if existing:
@@ -102,7 +110,7 @@ def main():
             continue
 
         kwargs = dict(
-            project_override=PROJECT, extra_tags=EXTRA_TAGS, source_path=live_source,
+            project_override=args.project, extra_tags=EXTRA_TAGS, source_path=live_source,
         )
 
         if dry:
