@@ -10,3 +10,4 @@ Thumbs.db
 # 편집기
 .vscode/
 *.swp
+__pycache__/
